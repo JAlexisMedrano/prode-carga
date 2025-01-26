@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Formulario de Preguntas</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      padding: 20px;
+    }
+    .form-container {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      margin: 10px 0 5px;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 1px solid #ddd;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+      border: none;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .question-input {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="form-container">
+    <h2>Crear Preguntas</h2>
+    <form id="questionForm">
+      <div id="questionsContainer">
+        <!-- Las preguntas se añadirán dinámicamente aquí -->
+      </div>
+      <button type="submit">Guardar Preguntas</button>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('questionForm');
+    const questionsContainer = document.getElementById('questionsContainer');
+    const QUESTIONS_API_URL = "https://api.jsonbin.io/v3/b/67957f60ad19ca34f8f46993";  // Reemplaza con tu ID de contenedor de preguntas
+    const JSONBIN_API_KEY = "$2a$10$o3q3pxXpujRJF8FxZz.mHOU/aukXSBNiGrC3hhMVlIJeqZP0rMc3W";  // Tu clave de API
+
+    const commonOptions = ["LOCAL", "EMPATE", "VISITANTE"]; // Opciones comunes para todas las preguntas
+
+    // Crear campos de entrada para las 15 preguntas
+    for (let i = 0; i < 15; i++) {
+      const questionDiv = document.createElement('div');
+      questionDiv.classList.add('question-input');
+      questionDiv.innerHTML = `
+        <label for="question${i}">Pregunta ${i + 1}:</label>
+        <input type="text" id="question${i}" name="question${i}" required placeholder="Escribe la pregunta ${i + 1}">
+      `;
+      questionsContainer.appendChild(questionDiv);
+    }
+
+    // Manejo del envío del formulario
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      // Obtener todas las preguntas ingresadas
+      const questions = [];
+      for (let i = 0; i < 15; i++) {
+        const questionText = document.getElementById(`question${i}`).value;
+        if (questionText) {
+          questions.push({
+            text: questionText,
+            options: commonOptions
+          });
+        }
+      }
+
+      if (questions.length === 15) {
+        // Llamada a la API de JSONBin para obtener las preguntas actuales y agregar las nuevas
+        try {
+          const response = await fetch(QUESTIONS_API_URL, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Master-Key': JSONBIN_API_KEY,
+            },
+          });
+
+          const data = await response.json();
+          if (response.ok) {
+            // Obtener las preguntas actuales
+            const existingQuestions = data.record.questions || [];
+
+            // Añadir las nuevas preguntas a las existentes
+            const updatedQuestions = [...existingQuestions, ...questions];
+
+            // Enviar las preguntas actualizadas
+            const updateResponse = await fetch(QUESTIONS_API_URL, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Master-Key': JSONBIN_API_KEY,
+              },
+              body: JSON.stringify({
+                questions: updatedQuestions
+              }),
+            });
+
+            const updateData = await updateResponse.json();
+            if (updateResponse.ok) {
+              alert('Preguntas guardadas correctamente!');
+              console.log('Respuesta de JSONBin:', updateData);
+            } else {
+              alert('Hubo un error al guardar las preguntas.');
+              console.error('Error:', updateData);
+            }
+          } else {
+            alert('Error al obtener preguntas existentes.');
+            console.error('Error:', data);
+          }
+        } catch (error) {
+          alert('Error de conexión con JSONBin.');
+          console.error('Error de red:', error);
+        }
+
+        // Limpiar el formulario
+        form.reset();
+      } else {
+        alert('Por favor, completa todas las preguntas.');
+      }
+    });
+  </script>
+
+</body>
+</html>
